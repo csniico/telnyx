@@ -35,6 +35,15 @@ export const env = {
   get webhookToleranceSeconds() {
     return Number(process.env.WEBHOOK_TOLERANCE_SECONDS ?? "300");
   },
+  get adminUsername() {
+    return required("ADMIN_USERNAME");
+  },
+  get adminPassword() {
+    return required("ADMIN_PASSWORD");
+  },
+  get sessionSecret() {
+    return required("SESSION_SECRET");
+  },
   get isProduction() {
     return process.env.NODE_ENV === "production";
   },

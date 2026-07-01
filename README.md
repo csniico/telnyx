@@ -23,6 +23,8 @@ Message history is built from Telnyx **webhooks** persisted in **MongoDB**
    - `TELNYX_API_KEY` — Mission Control > API Keys
    - `TELNYX_PUBLIC_KEY` — Mission Control > Keys & Credentials > Public Key
    - `MONGODB_URI` — your MongoDB Atlas SRV connection string
+   - `ADMIN_USERNAME` / `ADMIN_PASSWORD` — admin sign-in credentials
+   - `SESSION_SECRET` — long random string signing the session cookie
 3. Run:
    ```bash
    npm run dev
@@ -37,7 +39,14 @@ In local dev, expose `http://localhost:3000` with a tunnel (ngrok / Cloudflare
 Tunnel) and use that URL. Every request is Ed25519-verified with replay
 protection before it is stored.
 
+## Auth
+Every page and API route (except the sign-in page and `POST /api/webhooks/telnyx`,
+which is authenticated by Ed25519 signature) requires an admin session. Sign in
+at `/signin` with `ADMIN_USERNAME` / `ADMIN_PASSWORD`; a signed, HttpOnly session
+cookie is issued and enforced by `middleware.ts`.
+
 ## Routes
+- `/signin` — admin sign-in
 - `/` — messaging profiles (live from Telnyx)
 - `/numbers` — messaging-enabled phone numbers (live from Telnyx)
 - `/conversations` — threads (from MongoDB)

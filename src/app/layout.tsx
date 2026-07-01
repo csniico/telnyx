@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import HeaderNav from "@/components/HeaderNav";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -17,11 +17,7 @@ export default function RootLayout({
       <body>
         <header className="topbar">
           <strong>Telnyx Admin</strong>
-          <nav>
-            <Link href="/">Dashboard</Link>
-            <Link href="/numbers">Numbers</Link>
-            <Link href="/conversations">Conversations</Link>
-          </nav>
+          <HeaderNav />
         </header>
         <main className="container">{children}</main>
       </body>
