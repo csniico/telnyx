@@ -2,6 +2,18 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { MessageSquareText } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 function SignInForm() {
   const router = useRouter();
@@ -11,12 +23,10 @@ function SignInForm() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
-    setError(null);
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
@@ -28,44 +38,61 @@ function SignInForm() {
       router.replace(next);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
+      toast.error(err instanceof Error ? err.message : String(err));
       setBusy(false);
     }
   }
 
   return (
-    <div className="card" style={{ maxWidth: 360, margin: "3rem auto" }}>
-      <h1>Sign in</h1>
-      <form onSubmit={submit}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-          <input
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="Username"
-            autoComplete="username"
-          />
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
-            autoComplete="current-password"
-          />
-          <button type="submit" disabled={busy || !username || !password}>
+    <Card className="w-full max-w-sm shadow-lg">
+      <CardHeader className="items-center text-center">
+        <span className="mb-2 flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+          <MessageSquareText className="size-6" />
+        </span>
+        <CardTitle className="text-xl">Telnyx Admin</CardTitle>
+        <CardDescription>Sign in to the messaging console</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={submit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="username">Username</Label>
+            <Input
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username"
+              autoFocus
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+            />
+          </div>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={busy || !username || !password}
+          >
             {busy ? "Signing in…" : "Sign in"}
-          </button>
-        </div>
-      </form>
-      {error && <div className="error">{error}</div>}
-    </div>
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 }
 
 export default function SignInPage() {
   return (
-    <Suspense fallback={null}>
-      <SignInForm />
-    </Suspense>
+    <div className="flex min-h-[70vh] items-center justify-center">
+      <Suspense fallback={null}>
+        <SignInForm />
+      </Suspense>
+    </div>
   );
 }

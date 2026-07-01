@@ -2,6 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Send } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function SendForm({
   defaultFrom,
@@ -14,11 +20,9 @@ export default function SendForm({
   const [text, setText] = useState("");
   const [from, setFrom] = useState(defaultFrom);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function send() {
     setBusy(true);
-    setError(null);
     try {
       const res = await fetch("/api/messages/send", {
         method: "POST",
@@ -28,34 +32,46 @@ export default function SendForm({
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "send failed");
       setText("");
-      router.refresh(); // re-run the server component to show the new message
+      toast.success("Message sent");
+      router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      toast.error(err instanceof Error ? err.message : String(err));
     } finally {
       setBusy(false);
     }
   }
 
+  function onKeyDown(e: React.KeyboardEvent) {
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && text && from) {
+      e.preventDefault();
+      void send();
+    }
+  }
+
   return (
-    <div className="card">
-      <div className="row">
-        <input
+    <Card>
+      <CardContent className="space-y-3 py-4">
+        <Input
           value={from}
           onChange={(e) => setFrom(e.target.value)}
-          placeholder="From (+1...)"
-          style={{ width: 160 }}
+          placeholder="From number (+1…)"
+          className="max-w-[220px] tabular-nums"
         />
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder={`Message to ${to}`}
-          rows={2}
-        />
-        <button onClick={send} disabled={busy || !text || !from}>
-          {busy ? "Sending…" : "Send"}
-        </button>
-      </div>
-      {error && <div className="error">{error}</div>}
-    </div>
+        <div className="flex items-end gap-2">
+          <Textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={onKeyDown}
+            placeholder={`Message ${to}…  (⌘/Ctrl + Enter to send)`}
+            rows={2}
+            className="resize-none"
+          />
+          <Button onClick={send} disabled={busy || !text || !from} size="lg">
+            <Send className="size-4" />
+            {busy ? "Sending…" : "Send"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

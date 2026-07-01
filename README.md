@@ -9,6 +9,7 @@ Message history is built from Telnyx **webhooks** persisted in **MongoDB**
 - Next.js 15 (App Router, server components / SSR)
 - MongoDB (native driver, connection cached for serverless)
 - Telnyx REST v2 (`fetch`), Ed25519 webhook verification via `node:crypto`
+- UI: Tailwind CSS v4 + shadcn/ui (preset `b27GcrRo`), lucide icons, sonner toasts
 
 ## Setup
 
