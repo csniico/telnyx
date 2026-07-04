@@ -36,8 +36,21 @@ export interface MessageDoc {
   sentAt: Date | null;
   receivedAt: Date | null;
   updatedAt: Date;
+  /**
+   * When true the plaintext has been replaced by `cipher` (AES-256-GCM).
+   * `text` is emptied; the message renders as gibberish until decrypted.
+   */
+  encrypted?: boolean;
+  cipher?: CipherBlob | null;
   /** Raw Telnyx payload for auditing/replay. */
   raw?: unknown;
+}
+
+/** AES-256-GCM ciphertext components, all base64. */
+export interface CipherBlob {
+  iv: string;
+  tag: string;
+  data: string;
 }
 
 /** A thread summary for the inbox list. */
@@ -48,4 +61,8 @@ export interface Conversation {
   lastDirection: Direction;
   lastAt: Date;
   messageCount: number;
+  /** Whether the most recent message is currently encrypted. */
+  lastEncrypted: boolean;
+  /** Base64 gibberish of the last message when encrypted (for the preview). */
+  lastCipherData: string | null;
 }

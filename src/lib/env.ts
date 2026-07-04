@@ -44,6 +44,9 @@ export const env = {
   get sessionSecret() {
     return required("SESSION_SECRET");
   },
+  get messagePasscode() {
+    return required("MESSAGE_PASSCODE");
+  },
   get isProduction() {
     return process.env.NODE_ENV === "production";
   },

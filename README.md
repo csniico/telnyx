@@ -26,6 +26,7 @@ Message history is built from Telnyx **webhooks** persisted in **MongoDB**
    - `MONGODB_URI` — your MongoDB Atlas SRV connection string
    - `ADMIN_USERNAME` / `ADMIN_PASSWORD` — admin sign-in credentials
    - `SESSION_SECRET` — long random string signing the session cookie
+   - `MESSAGE_PASSCODE` — passcode that encrypts/decrypts messages
 3. Run:
    ```bash
    npm run dev
@@ -46,8 +47,16 @@ which is authenticated by Ed25519 signature) requires an admin session. Sign in
 at `/signin` with `ADMIN_USERNAME` / `ADMIN_PASSWORD`; a signed, HttpOnly session
 cookie is issued and enforced by `middleware.ts`.
 
+## Message encryption ("soft delete")
+Instead of deleting, messages are **encrypted in place**. Each message has a lock
+icon (and each conversation a ⋮ menu). Locking prompts for `MESSAGE_PASSCODE`,
+then replaces the plaintext with AES-256-GCM ciphertext in MongoDB — it renders
+as base64 gibberish until decrypted with the same passcode. The key is derived
+from `MESSAGE_PASSCODE` (scrypt), so only that passcode can restore the text.
+
 ## Routes
 - `/signin` — admin sign-in
+- `POST /api/encrypt` — encrypt/decrypt a message or conversation
 - `/` — messaging profiles (live from Telnyx)
 - `/numbers` — messaging-enabled phone numbers (live from Telnyx)
 - `/conversations` — threads (from MongoDB)

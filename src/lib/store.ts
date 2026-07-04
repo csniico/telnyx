@@ -2,6 +2,7 @@ import "server-only";
 import type { Collection } from "mongodb";
 import { getDb } from "./mongodb";
 import type { Conversation, Direction, MessageDoc } from "./types";
+import { decryptText, encryptText } from "./crypto";
 
 async function messages(): Promise<Collection<MessageDoc>> {
   const db = await getDb();
@@ -62,14 +63,100 @@ export async function listConversations(): Promise<Conversation[]> {
           lastText: { $first: "$text" },
           lastDirection: { $first: "$direction" },
           lastAt: { $first: "$updatedAt" },
+          lastEncrypted: { $first: { $ifNull: ["$encrypted", false] } },
+          lastCipherData: { $first: { $ifNull: ["$cipher.data", null] } },
           messageCount: { $sum: 1 },
         },
       },
       { $sort: { lastAt: -1 } },
+      // Exclusion-only projection: drops _id but keeps every $group field.
       { $project: { _id: 0 } },
     ])
     .toArray();
   return rows;
+}
+
+// ---- Encryption ("soft delete") -------------------------------------------
+
+/** Encrypt one message in place, replacing its plaintext with ciphertext. */
+export async function encryptMessage(
+  telnyxId: string,
+  passcode: string,
+): Promise<boolean> {
+  const col = await messages();
+  const doc = await col.findOne({ telnyxId });
+  if (!doc) return false;
+  if (doc.encrypted) return true; // already encrypted
+  const cipher = encryptText(doc.text ?? "", passcode);
+  await col.updateOne(
+    { telnyxId },
+    { $set: { encrypted: true, cipher, text: "", updatedAt: doc.updatedAt } },
+  );
+  return true;
+}
+
+/** Decrypt one message in place, restoring its plaintext. Throws on bad passcode. */
+export async function decryptMessage(
+  telnyxId: string,
+  passcode: string,
+): Promise<boolean> {
+  const col = await messages();
+  const doc = await col.findOne({ telnyxId });
+  if (!doc) return false;
+  if (!doc.encrypted || !doc.cipher) return true; // nothing to do
+  const text = decryptText(doc.cipher, passcode); // throws if passcode wrong
+  await col.updateOne(
+    { telnyxId },
+    { $set: { encrypted: false, cipher: null, text, updatedAt: doc.updatedAt } },
+  );
+  return true;
+}
+
+/** Encrypt every not-yet-encrypted message in a thread. Returns count changed. */
+export async function encryptConversation(
+  ourNumber: string,
+  contactNumber: string,
+  passcode: string,
+): Promise<number> {
+  const col = await messages();
+  const docs = await col
+    .find({ ourNumber, contactNumber, encrypted: { $ne: true } })
+    .toArray();
+  let n = 0;
+  for (const doc of docs) {
+    const cipher = encryptText(doc.text ?? "", passcode);
+    await col.updateOne(
+      { telnyxId: doc.telnyxId },
+      { $set: { encrypted: true, cipher, text: "", updatedAt: doc.updatedAt } },
+    );
+    n++;
+  }
+  return n;
+}
+
+/** Decrypt every encrypted message in a thread. Throws on bad passcode. */
+export async function decryptConversation(
+  ourNumber: string,
+  contactNumber: string,
+  passcode: string,
+): Promise<number> {
+  const col = await messages();
+  const docs = await col
+    .find({ ourNumber, contactNumber, encrypted: true })
+    .toArray();
+  let n = 0;
+  for (const doc of docs) {
+    if (!doc.cipher) continue;
+    const text = decryptText(doc.cipher, passcode); // throws if passcode wrong
+    await col.updateOne(
+      { telnyxId: doc.telnyxId },
+      {
+        $set: { encrypted: false, cipher: null, text, updatedAt: doc.updatedAt },
+      },
+    );
+    n++;
+  }
+  return n;
 }
 
 /** All messages in a thread, oldest first (chat order). */
